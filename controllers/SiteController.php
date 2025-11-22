@@ -12,58 +12,30 @@ use app\models\ContactForm;
 
 class SiteController extends Controller
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function behaviors()
+    protected function maskIp($ip)
     {
-        return [
-            'access' => [
-                'class' => AccessControl::class,
-                'only' => ['logout'],
-                'rules' => [
-                    [
-                        'actions' => ['logout'],
-                        'allow' => true,
-                        'roles' => ['@'],
-                    ],
-                ],
-            ],
-            'verbs' => [
-                'class' => VerbFilter::class,
-                'actions' => [
-                    'logout' => ['post'],
-                ],
-            ],
-        ];
-    }
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $parts = explode('.', $ip);
+            $parts[2] = '**';
+            $parts[3] = '**';
+            return implode('.', $parts);
+        }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function actions()
-    {
-        return [
-            'error' => [
-                'class' => 'yii\web\ErrorAction',
-            ],
-            'captcha' => [
-                'class' => 'yii\captcha\CaptchaAction',
-                'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
-            ],
-        ];
-    }
+        if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $parts = explode(':', $ip);
+            for ($i = 4; $i < 8; $i++) $parts[$i] = '**';
+            return implode(':', $parts);
+        }
 
-    /**
-     * Displays homepage.
-     *
-     * @return string
-     */
+        return $ip;
+    }
     public function actionIndex()
     {
         $model = new Post();
 
         if ($model->load(Yii::$app->request->post())) {
+
+            $model->imageFile = \yii\web\UploadedFile::getInstance($model, 'imageFile');
 
             $ip = Yii::$app->request->userIP;
 
@@ -73,51 +45,26 @@ class SiteController extends Controller
                 $model->created_at = time();
                 $model->ip = $ip;
 
-                if ($model->save()) {
+                $model->uploadImage();
+
+                if ($model->save(false)) {
+                    Yii::$app->mailer->compose()
+                        ->setTo($model->email)
+                        ->setSubject('Управление сообщением на StoryVault')
+                        ->setHtmlBody("
+                            <p>Ваше сообщение успешно опубликовано!</p>
+                            <p><a href='" . Yii::$app->urlManager->createAbsoluteUrl(['site/edit', 'id' => $model->id, 'token' => $model->token]) . "'>Редактировать</a></p>
+                            <p><a href='" . Yii::$app->urlManager->createAbsoluteUrl(['site/delete', 'id' => $model->id, 'token' => $model->token]) . "'>Удалить</a></p>")
+                        ->send();
+
                     return $this->refresh();
                 }
             }
         }
-
         return $this->render('index', [
             'model' => $model,
             'posts' => Post::find()->where(['deleted_at' => null])->orderBy(['id' => SORT_DESC])->all(),
         ]);
     }
-
-    /**
-     * Login action.
-     *
-     * @return Response|string
-     */
-    public function actionLogin()
-    {
-        if (!Yii::$app->user->isGuest) {
-            return $this->goHome();
-        }
-
-        $model = new LoginForm();
-        if ($model->load(Yii::$app->request->post()) && $model->login()) {
-            return $this->goBack();
-        }
-
-        $model->password = '';
-        return $this->render('login', [
-            'model' => $model,
-        ]);
-    }
-
-    /**
-     * Logout action.
-     *
-     * @return Response
-     */
-    public function actionLogout()
-    {
-        Yii::$app->user->logout();
-
-        return $this->goHome();
-    }
-
 
 }

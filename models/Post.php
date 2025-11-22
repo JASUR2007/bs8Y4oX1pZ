@@ -1,4 +1,4 @@
-    <?php
+<?php
 
     namespace app\models;
 
@@ -18,19 +18,13 @@
      */
     class Post extends \yii\db\ActiveRecord
     {
+        public $imageFile; // здесь свойство для загрузки
 
-
-        /**
-         * {@inheritdoc}
-         */
         public static function tableName()
         {
             return 'post';
         }
 
-        /**
-         * {@inheritdoc}
-         */
         public function rules()
         {
             return [
@@ -39,12 +33,16 @@
                 ['message', 'string', 'min' => 5, 'max' => 1000],
                 [['author_name', 'email', 'message'], 'required'],
                 ['message', 'match', 'pattern' => '/\S+/'],
+
+                // правила для загрузки файла
+                ['imageFile', 'file',
+                    'skipOnEmpty' => true,
+                    'extensions' => ['jpg', 'png', 'webp'],
+                    'maxSize' => 2 * 1024 * 1024, // 2MB
+                ],
             ];
         }
 
-        /**
-         * {@inheritdoc}
-         */
         public static function canPost($identifier, $minutes = 3)
         {
             $last = self::find()
@@ -57,4 +55,20 @@
             return (time() - $last->created_at) > ($minutes * 60);
         }
 
+        // Метод для сохранения изображения при сохранении поста
+        public function uploadImage()
+        {
+            if ($this->imageFile) {
+                $filename = uniqid('', true) . '.' . $this->imageFile->extension;
+                $this->imageFile->saveAs("uploads/$filename");
+                $this->image = $filename;
+            }
+        }
+        public function softDelete()
+        {
+            $this->deleted_at = time();
+            return $this->save(false);
+        }
+
     }
+
