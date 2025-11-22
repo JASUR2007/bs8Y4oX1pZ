@@ -38,7 +38,9 @@ $this->title = 'StoryVault';
         <?php foreach ($posts as $post): ?>
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title"><?= Html::encode($post->author_name) ?> (<?= Html::encode(maskIp($post->ip)) ?>)</h5>
+                    <h5 class="card-title">
+                        <?= Html::encode($post->author_name) ?> (<?= \app\components\Helper::maskIp($post->ip) ?>)
+                    </h5>
                     <h6 class="card-subtitle mb-2 text-muted">
                         <?= Yii::$app->formatter->asRelativeTime($post->created_at) ?>
                     </h6>

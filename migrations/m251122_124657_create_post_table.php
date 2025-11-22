@@ -21,6 +21,7 @@ class m251122_124657_create_post_table extends Migration
             'image'         => $this->string()->null(),
             'created_at'    => $this->integer()->notNull(),
             'deleted_at'    => $this->integer()->null(),
+            'token'         => $this->string(64)->notNull(),
         ]);
     }
 

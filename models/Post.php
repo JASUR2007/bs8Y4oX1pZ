@@ -18,8 +18,8 @@
      */
     class Post extends \yii\db\ActiveRecord
     {
-        public $imageFile; // здесь свойство для загрузки
-
+        public $imageFile;
+        public $verifyCode;
         public static function tableName()
         {
             return 'post';
@@ -34,12 +34,13 @@
                 [['author_name', 'email', 'message'], 'required'],
                 ['message', 'match', 'pattern' => '/\S+/'],
 
-                // правила для загрузки файла
                 ['imageFile', 'file',
                     'skipOnEmpty' => true,
                     'extensions' => ['jpg', 'png', 'webp'],
-                    'maxSize' => 2 * 1024 * 1024, // 2MB
+                    'maxSize' => 2 * 1024 * 1024,
                 ],
+
+                ['verifyCode', 'captcha'],
             ];
         }
 
@@ -55,20 +56,31 @@
             return (time() - $last->created_at) > ($minutes * 60);
         }
 
-        // Метод для сохранения изображения при сохранении поста
         public function uploadImage()
         {
             if ($this->imageFile) {
+                list($width, $height) = getimagesize($this->imageFile->tempName);
+                if ($width > 1500 || $height > 1500) {
+                    $this->addError('imageFile', 'Размер изображения превышает 1500px');
+                    return false;
+                }
                 $filename = uniqid('', true) . '.' . $this->imageFile->extension;
                 $this->imageFile->saveAs("uploads/$filename");
                 $this->image = $filename;
             }
+            return true;
         }
         public function softDelete()
         {
             $this->deleted_at = time();
             return $this->save(false);
         }
-
+        public function beforeSave($insert)
+        {
+            if ($insert) {
+                $this->token = Yii::$app->security->generateRandomString(32);
+            }
+            return parent::beforeSave($insert);
+        }
     }
 
