@@ -35,8 +35,10 @@
                             <p><a href='" . Yii::$app->urlManager->createAbsoluteUrl(['site/delete', 'id' => $model->id, 'token' => $model->token]) . "'>Удалить</a></p>
                         ")
                         ->send();
-
+                    $this->createAction('captcha')->getVerifyCode(true);
                     return $this->refresh();
+                }else {
+                    $this->createAction('captcha')->getVerifyCode(true);
                 }
             }
             return $this->render('index', [
@@ -50,6 +52,11 @@
                 'captcha' => [
                     'class' => 'yii\captcha\CaptchaAction',
                     'fixedVerifyCode' => YII_ENV_TEST ? 'testme' : null,
+                    'height' => 50,
+                    'width' => 120,
+                    'padding' => 5,
+                    'minLength' => 4,
+                    'maxLength' => 5,
                 ],
             ];
         }
