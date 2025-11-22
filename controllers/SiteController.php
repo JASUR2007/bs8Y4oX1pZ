@@ -61,7 +61,28 @@ class SiteController extends Controller
      */
     public function actionIndex()
     {
-        return $this->render('index');
+        $model = new Post();
+
+        if ($model->load(Yii::$app->request->post())) {
+
+            $ip = Yii::$app->request->userIP;
+
+            if (!Post::canPost($ip)) {
+                $model->addError('message', 'Вы можете отправлять сообщение только 1 раз в 3 минуты.');
+            } else {
+                $model->created_at = time();
+                $model->ip = $ip;
+
+                if ($model->save()) {
+                    return $this->refresh();
+                }
+            }
+        }
+
+        return $this->render('index', [
+            'model' => $model,
+            'posts' => Post::find()->where(['deleted_at' => null])->orderBy(['id' => SORT_DESC])->all(),
+        ]);
     }
 
     /**
