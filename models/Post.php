@@ -65,7 +65,24 @@
                     return false;
                 }
                 $filename = uniqid('', true) . '.' . $this->imageFile->extension;
-                $this->imageFile->saveAs("uploads/$filename");
+
+                $uploadPath = Yii::getAlias('@app/web/uploads/');
+                if (!is_dir($uploadPath)) {
+                    if (!mkdir($uploadPath, 0777, true)
+                        && !is_dir(
+                            $uploadPath
+                        )
+                    ) {
+                        throw new \RuntimeException(
+                            sprintf(
+                                'Directory "%s" was not created',
+                                $uploadPath
+                            )
+                        );
+                    }
+                }
+
+                $this->imageFile->saveAs($uploadPath . $filename);
                 $this->image = $filename;
             }
             return true;
